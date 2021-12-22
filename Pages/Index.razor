@@ -1,0 +1,140 @@
+﻿@page "/"
+
+<h1>Hello, world!</h1>
+
+Welcome to your new app.
+
+<SurveyPrompt Title="How is Blazor working for you?" />
+
+<div style="margin-top:40px;">
+    <h1>Lチカ</h1>
+    <button @onclick="ledOn">ON</button>
+    <button @onclick="ledOff">OFF</button>
+</div>
+
+<div style="margin-top:40px;">
+    <h1 style="margin-top:20px;">シリアル通信</h1>
+    <div style="display:flex">
+        <div class="box">
+            COM PORT<br>
+            <select @bind="@selectComport">
+                @foreach (var c in comport)
+                {
+                    <option value=@c>@c</option>
+                }
+            </select>
+        </div>
+        <div class="box">
+            baud rate<br>
+            <select @bind="@selectBaudrate">
+                @foreach (var b in baudrate)
+                {
+                    <option value=@b>@b</option>
+                }
+            </select>
+        </div>
+        <button @onclick="@connect" class="box">
+            接続
+        </button>
+        <button @onclick="@disconnect" class="box">
+            切断
+        </button>
+    </div>
+    <div style="display:flex; margin-top:10px;">
+        <div class="box">
+            送信データ<br>
+            <input type="text" @bind="@sendData">
+        </div>
+        <button @onclick="@Send" class="box">Send</button>
+    </div>
+    <div style="margin-top:10px;" class="box">
+        受信データ<br>
+        <input type="text" @bind="@recieveData">
+    </div>
+    <p class="box">@errormassage</p>
+</div>
+
+@code{
+
+    int pin = 18;
+
+    SerialPort serialPort = new SerialPort();
+    string[] comport = SerialPort.GetPortNames();
+    string selectComport { get; set; } = "";
+    int[] baudrate = { 1200, 2400, 4800, 9600, 19200, 38400, 57600, 115200 };
+    int selectBaudrate { get; set; } = 0;
+    string sendData { get; set; } = "";
+    string recieveData { get; set; } = "";
+    string errormassage { get; set; } = "";
+
+
+
+    private void ledOn()
+    {
+        using var controller = new GpioController();
+        controller.OpenPin(pin, PinMode.Output);
+        controller.Write(pin, PinValue.High);
+    }
+
+    private void ledOff()
+    {
+        using var controller = new GpioController();
+        controller.OpenPin(pin, PinMode.Output);
+        controller.Write(pin, PinValue.Low);
+    }
+
+    private void connect()
+    {
+        try
+        {
+            serialPort.PortName = selectComport;
+            serialPort.BaudRate = selectBaudrate;
+            serialPort.DataBits = 8;
+            serialPort.Parity = Parity.None;
+            serialPort.StopBits = StopBits.One;
+            serialPort.WriteTimeout = 1000;
+            serialPort.ReadTimeout = 1000;
+            serialPort.Encoding = Encoding.UTF8;
+
+            serialPort.Open();
+            serialPort.DataReceived += OnReceived;
+
+            errormassage = "";
+        }
+        catch (Exception ex)
+        {
+            errormassage = "error:" + ex.Message;
+        }
+    }
+
+    private void disconnect()
+    {
+        try
+        {
+            serialPort.Close();
+            errormassage = "";
+        }
+        catch (Exception ex)
+        {
+            errormassage = "error:" + ex.Message;
+        }
+    }
+
+    private void Send()
+    {
+        if (serialPort.IsOpen)
+        {
+            serialPort.Write(sendData);
+        }
+
+    }
+
+    private void OnReceived(object sender, SerialDataReceivedEventArgs e)
+    {
+        recieveData += serialPort.ReadExisting();
+        InvokeAsync(() => StateHasChanged());
+    }
+}
+
+
+
