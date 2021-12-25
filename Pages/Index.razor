@@ -54,11 +54,11 @@ Welcome to your new app.
     <p class="box">@errormassage</p>
 </div>
 
-@code{
+@code {
 
     int pin = 18;
 
-    SerialPort serialPort = new SerialPort();
+    SerialCommunicator serialCommunicator = new SerialCommunicator();
     string[] comport = SerialPort.GetPortNames();
     string selectComport { get; set; } = "";
     int[] baudrate = { 1200, 2400, 4800, 9600, 19200, 38400, 57600, 115200 };
@@ -67,7 +67,11 @@ Welcome to your new app.
     string recieveData { get; set; } = "";
     string errormassage { get; set; } = "";
 
-
+    protected override void OnInitialized()
+    {
+        serialCommunicator.DataReceived += serialCommunicator_OnReceived;
+        serialCommunicator.StateHasChanged += serialCommunicator_StateHasChanged;
+    }
 
     private void ledOn()
     {
@@ -87,18 +91,7 @@ Welcome to your new app.
     {
         try
         {
-            serialPort.PortName = selectComport;
-            serialPort.BaudRate = selectBaudrate;
-            serialPort.DataBits = 8;
-            serialPort.Parity = Parity.None;
-            serialPort.StopBits = StopBits.One;
-            serialPort.WriteTimeout = 1000;
-            serialPort.ReadTimeout = 1000;
-            serialPort.Encoding = Encoding.UTF8;
-
-            serialPort.Open();
-            serialPort.DataReceived += OnReceived;
-
+            serialCommunicator.Connect(selectComport, selectBaudrate);
             errormassage = "";
         }
         catch (Exception ex)
@@ -111,7 +104,7 @@ Welcome to your new app.
     {
         try
         {
-            serialPort.Close();
+            serialCommunicator.Disconnect();
             errormassage = "";
         }
         catch (Exception ex)
@@ -122,16 +115,17 @@ Welcome to your new app.
 
     private void Send()
     {
-        if (serialPort.IsOpen)
-        {
-            serialPort.Write(sendData);
-        }
-
+        serialCommunicator.Send(sendData);
     }
 
-    private void OnReceived(object sender, SerialDataReceivedEventArgs e)
+    private void serialCommunicator_StateHasChanged(object sender, EventArgs e)
     {
-        recieveData += serialPort.ReadExisting();
+        InvokeAsync(() => StateHasChanged());
+    }
+
+    private void serialCommunicator_OnReceived(object sender, SerialCommunicatorDataReceivedEventArgs e)
+    {
+        recieveData += e.RecieveData;
         InvokeAsync(() => StateHasChanged());
     }
 }
