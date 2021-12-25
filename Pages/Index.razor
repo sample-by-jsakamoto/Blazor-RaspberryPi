@@ -17,7 +17,7 @@ Welcome to your new app.
     <div style="display:flex">
         <div class="box">
             COM PORT<br>
-            <select @bind="@selectComport">
+            <select @bind="@selectComport" disabled="@serialCommunicator.IsOpen">
                 @foreach (var c in comport)
                 {
                     <option value=@c>@c</option>
@@ -26,26 +26,26 @@ Welcome to your new app.
         </div>
         <div class="box">
             baud rate<br>
-            <select @bind="@selectBaudrate">
+            <select @bind="@selectBaudrate" disabled="@serialCommunicator.IsOpen">
                 @foreach (var b in baudrate)
                 {
                     <option value=@b>@b</option>
                 }
             </select>
         </div>
-        <button @onclick="@connect" class="box">
+        <button @onclick="@connect" class="box" disabled="@serialCommunicator.IsOpen">
             接続
         </button>
-        <button @onclick="@disconnect" class="box">
+        <button @onclick="@disconnect" class="box" disabled="@(!serialCommunicator.IsOpen)">
             切断
         </button>
     </div>
     <div style="display:flex; margin-top:10px;">
         <div class="box">
             送信データ<br>
-            <input type="text" @bind="@sendData">
+            <input type="text" @bind="@sendData" disabled="@(!serialCommunicator.IsOpen)">
         </div>
-        <button @onclick="@Send" class="box">Send</button>
+        <button @onclick="@Send" class="box" disabled="@(!serialCommunicator.IsOpen)">Send</button>
     </div>
     <div style="margin-top:10px;" class="box">
         受信データ<br>
@@ -120,6 +120,8 @@ Welcome to your new app.
 
     private void serialCommunicator_StateHasChanged(object sender, EventArgs e)
     {
+        selectComport = serialCommunicator.selectComport;
+        selectBaudrate = serialCommunicator.selectBaudrate;
         InvokeAsync(() => StateHasChanged());
     }
 
